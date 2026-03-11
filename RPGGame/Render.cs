@@ -14,22 +14,17 @@ public class Render(Board board, Player player)
                 if (player.X == j && player.Y == i)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.Write('P');
+                    Console.Write('¶');
                 }
                 else if (board[i, j].ItemsOnGround.Count > 0)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
                     Console.Write(board[i, j].ItemsOnGround.Peek().Symbol);
                 }
-                else if (board[i, j].Terrain == TerrainType.Wall)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.Write('█');
-                }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.Write('▓');
+                    Console.ForegroundColor = board[i, j].GetColor();
+                    Console.Write(board[i, j].GetSymbol());
                 }
             }
             Console.WriteLine();
@@ -166,7 +161,7 @@ public class Render(Board board, Player player)
         Console.SetCursorPosition(startX, 3);
         Console.Write($"Gold:  {player.Gold}".PadRight(30));
     }
-    public void RenderPlayerAttributes()
+    private void RenderPlayerAttributes()
     {
         int startX = board.Columns + 35; 
 
@@ -187,8 +182,8 @@ public class Render(Board board, Player player)
     public void RenderUI()
     {
         RenderBoard();
-        RenderPlayerBackpack();
         RenderActionPrompt();
+        RenderPlayerBackpack();
         RenderEquippedItems();
         RenderPlayerStats();
         RenderPlayerAttributes();

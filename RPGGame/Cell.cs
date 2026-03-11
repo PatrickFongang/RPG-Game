@@ -1,19 +1,24 @@
 ﻿using RPGGame.Items;
 namespace RPGGame;
 
-public enum TerrainType
+public abstract class Cell
 {
-    Ground,
-    Wall
+    public Stack<Item> ItemsOnGround { get; } = new Stack<Item>();
+    public abstract bool IsPassable { get; } 
+    public abstract char GetSymbol();
+    public abstract ConsoleColor GetColor();
 }
-public class Cell
-{
-    public TerrainType Terrain;
-    public Stack<Item> ItemsOnGround;
 
-    public Cell(TerrainType terrain)
-    {
-        this.Terrain = terrain;
-        this.ItemsOnGround = new Stack<Item>();
-    }
+public class GroundCell : Cell
+{
+    public override bool IsPassable => true;
+    public override char GetSymbol() => '▓'; 
+    public override ConsoleColor GetColor() => ConsoleColor.DarkGreen;
+}
+
+public class WallCell : Cell
+{
+    public override bool IsPassable => false;
+    public override char GetSymbol() => '█';
+    public override ConsoleColor GetColor() => ConsoleColor.DarkGray;
 }

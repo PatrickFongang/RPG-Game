@@ -27,14 +27,13 @@ public class Board
             {
                 if (i == 0 && j == 0)
                 {
-                    _board[i, j] = new Cell(TerrainType.Ground);
+                    _board[i, j] = new GroundCell();
                     continue;
                 }
+                
+                _board[i, j] = random.Next(0, 100) < wallPercentage ? new WallCell() : new GroundCell();
 
-                TerrainType terrain = random.Next(0, 100) < wallPercentage ? TerrainType.Wall : TerrainType.Ground;
-                _board[i, j] = new Cell(terrain);
-
-                if (_board[i, j].Terrain == TerrainType.Ground)
+                if (_board[i, j].IsPassable)
                 {
                     SpawnItems(i, j);
                 }

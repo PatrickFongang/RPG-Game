@@ -142,7 +142,7 @@ public class GameEngine
 
         if (targetY < 0) return;
 
-        if (_board[targetY, targetX].Terrain == TerrainType.Wall) return;
+        if (!_board[targetY, targetX].IsPassable) return;
 
         _player.Y = targetY;
     }
@@ -154,7 +154,7 @@ public class GameEngine
 
         if (targetY + 1 > _board.Rows) return;
 
-        if (_board[targetY, targetX].Terrain == TerrainType.Wall) return;
+        if (!_board[targetY, targetX].IsPassable) return;
 
         _player.Y = targetY;
     }
@@ -166,7 +166,7 @@ public class GameEngine
 
         if (targetX < 0) return;
 
-        if (_board[targetY, targetX].Terrain == TerrainType.Wall) return;
+        if (!_board[targetY, targetX].IsPassable) return;
 
         _player.X = targetX;
     }
@@ -178,7 +178,7 @@ public class GameEngine
 
         if (targetX + 1 > _board.Columns) return;
 
-        if (_board[targetY, targetX].Terrain == TerrainType.Wall) return;
+        if (!_board[targetY, targetX].IsPassable) return;
 
         _player.X = targetX;
     }
