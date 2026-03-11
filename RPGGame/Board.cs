@@ -56,10 +56,10 @@ public class Board
         itemList.Add(new JunkItem("Skull", 'x', 3, "Empty inside."));
         itemList.Add(new JunkItem("Broken Compas", 'o', 3, "It only points south."));
 
-        itemList.Add(new CurrencyItem("Coin", 'c', 3, CurrencyType.Coin,
-            5, "A small leather pouch clinking with standard copper coins."));
-        itemList.Add(new CurrencyItem("Gold", 'G', 2, CurrencyType.Gold,
-            15, "A shiny, heavy ingot of solid gold. Merchants will love this."));
+        itemList.Add(new CoinItem("Coin", 'c', 3,5,
+            "A small leather pouch clinking with standard copper coins."));
+        itemList.Add(new GoldItem("Gold", 'G', 2,15,
+            "A shiny, heavy ingot of solid gold. Merchants will love this."));
 
         Random random = new Random();
         foreach (Item item in itemList)

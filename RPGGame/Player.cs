@@ -18,6 +18,8 @@ public class Player
     public int Wisdom { get; set; } = 50;
     public int Luck { get; set; } = 10;
     public int Aggression { get; set; } = 100;
+    public int Health { get; set; } = 100;
+    
 
     public Player(int startX, int startY)
     {

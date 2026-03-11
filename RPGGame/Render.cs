@@ -182,7 +182,7 @@ public class Render(Board board, Player player)
         Console.Write($"WIS: {player.Wisdom, -5} LUK: {player.Luck}".PadRight(35));
 
         Console.SetCursorPosition(startX, 4);
-        Console.Write($"AGG: {player.Aggression, -5}".PadRight(35));
+        Console.Write($"AGG: {player.Aggression, -5} HEL: {player.Health}".PadRight(35));
     }
     public void RenderUI()
     {
