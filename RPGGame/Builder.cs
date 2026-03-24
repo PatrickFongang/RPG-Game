@@ -15,6 +15,9 @@ public class Builder
     private readonly int _numberOfDifferentWeapons = 3;
     private readonly int _numberOfDifferentCurrencies = 2;
 
+    public bool HasPickups { get; private set; }
+    public bool HasInventoryItems { get; private set; }
+
     public Cell this[int rows, int cols] => _board[rows, cols];
 
     public Builder(int rows, int columns)
@@ -25,7 +28,7 @@ public class Builder
         _board = new Cell[Rows, Columns];
     }
 
-    private void BuildEmptyDungeon()
+    public void BuildEmptyDungeon()
     {
         for (int i = 0; i < Rows; i++)
         {
@@ -36,7 +39,7 @@ public class Builder
         }
     }
 
-    private void BuildFilledDungeon()
+    public void BuildFilledDungeon()
     {
         for (int i = 0; i < Rows; i++)
         {
@@ -49,7 +52,7 @@ public class Builder
         _numberOfWalls = Rows * Columns;
     }
 
-    private void AddRooms(int numberOfRooms)
+    public void AddRooms(int numberOfRooms)
     {
         if (numberOfRooms < 1 || numberOfRooms > _numberOfWalls) return;
 
@@ -68,10 +71,11 @@ public class Builder
         }
     }
 
-    private void AddJunkItems(int numberOfJunkItems)
+    public void AddJunkItems(int numberOfJunkItems)
     {
         if (numberOfJunkItems < 1) return;
-
+        HasPickups = true;
+        HasInventoryItems = true;
         Random random = new Random();
 
         for (int i = 0; i < numberOfJunkItems; i++)
@@ -83,9 +87,11 @@ public class Builder
         }
     }
 
-    private void AddWeapons(int numberOfWeapons)
+    public void AddWeapons(int numberOfWeapons)
     {
         if (numberOfWeapons < 1) return;
+        HasPickups = true;
+        HasInventoryItems = true;
 
         Random random = new Random();
         for (int i = 0; i < numberOfWeapons; i++)
@@ -97,21 +103,22 @@ public class Builder
         }
     }
 
-    private void AddCurrencies(int numberOfCurrencies)
+    public void AddCurrencies(int numberOfCurrencies)
     {
         if (numberOfCurrencies < 1) return;
+        HasPickups = true;
         Random random = new Random();
 
         for (int i = 0; i < numberOfCurrencies; i++)
         {
             (int row, int col) field = GetRandomField(random);
-            
+
             int index = random.Next(0, _numberOfDifferentCurrencies);
             _board[field.row, field.col].ItemsOnGround.Push(GetCurrencyItem(index));
         }
     }
 
-    private void AddCentralHall(int a, int b)
+    public void AddCentralHall(int a, int b)
     {
         if (a <= 0 || a >= Rows || b <= 0 || b >= Columns) return;
         if (Rows % 2 != a % 2 || Columns % 2 != b % 2) return;
@@ -127,23 +134,23 @@ public class Builder
         }
     }
 
-    private void GenerateMazeDfs()
+    public void GenerateMazeDfs()
     {
         Random random = new Random();
         Stack<(int r, int c)> stack = new Stack<(int r, int c)>();
-        
+
         int startR = 0;
         int startC = 0;
-        
+
         _board[startR, startC] = new GroundCell();
         stack.Push((startR, startC));
-        
+
         (int dr, int dc)[] directions = { (-2, 0), (2, 0), (0, -2), (0, 2) };
 
         while (stack.Count > 0)
         {
             var (currentR, currentC) = stack.Pop();
-            
+
             List<(int r, int c, int wallR, int wallC)> unvisitedNeighbors = new();
 
             foreach (var dir in directions)
@@ -157,7 +164,7 @@ public class Builder
                     {
                         int wallR = currentR + dir.dr / 2;
                         int wallC = currentC + dir.dc / 2;
-                        
+
                         unvisitedNeighbors.Add((nextR, nextC, wallR, wallC));
                     }
                 }
@@ -170,7 +177,7 @@ public class Builder
                 var next = unvisitedNeighbors[random.Next(unvisitedNeighbors.Count)];
 
                 _board[next.wallR, next.wallC] = new GroundCell();
-                
+
                 _board[next.r, next.c] = new GroundCell();
 
                 stack.Push((next.r, next.c));
@@ -178,7 +185,7 @@ public class Builder
         }
     }
 
-    private (int, int) GetRandomField(Random random)
+    public (int, int) GetRandomField(Random random)
     {
         int row, column;
         do
@@ -190,7 +197,7 @@ public class Builder
         return (row, column);
     }
 
-    private Item GetJunkItem(int index)
+    public Item GetJunkItem(int index)
     {
         Dictionary<int, Item> itemDict = new Dictionary<int, Item>();
 
@@ -203,7 +210,7 @@ public class Builder
         return itemDict[index];
     }
 
-    private Item GetWeaponItem(int index)
+    public Item GetWeaponItem(int index)
     {
         Dictionary<int, Item> itemDict = new Dictionary<int, Item>();
 
@@ -219,7 +226,7 @@ public class Builder
         return itemDict[index];
     }
 
-    private Item GetCurrencyItem(int index)
+    public Item GetCurrencyItem(int index)
     {
         Dictionary<int, Item> itemDict = new Dictionary<int, Item>();
 
@@ -231,16 +238,5 @@ public class Builder
         if (index < 0 || index > _numberOfDifferentCurrencies) return itemDict[0];
 
         return itemDict[index];
-    }
-
-    public void BuildDungeon()
-    {
-        BuildEmptyDungeon();
-        BuildFilledDungeon();
-        GenerateMazeDfs();
-        AddCentralHall(4, 8);
-        AddJunkItems(2);
-        AddWeapons(2);
-        AddCurrencies(2);
     }
 }

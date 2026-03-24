@@ -1,4 +1,6 @@
-﻿using RPGGame.Items;
+﻿using RPGGame.Commands;
+using RPGGame.Items;
+using RPGGame.Strategies;
 
 namespace RPGGame;
 
@@ -7,12 +9,36 @@ public class GameEngine
     private Builder _builder;
     private Player _player;
     private Render _render;
+    private Dictionary<ConsoleKey, ICommand> _commands;
 
-    public GameEngine()
+    public string LastMessage { get; set; } = "";
+
+    public GameEngine(IDungeonStrategy strategy)
     {
-        _builder = new Builder(20,40);
+        _builder = new Builder(20, 40);
         _player = new Player(_builder.Columns / 2, _builder.Rows / 2);
-        _render = new Render(_builder, _player);
+        _render = new Render(_builder, _player, this);
+
+        strategy.Generate(_builder);
+        InitializeCommands();
+    }
+
+    private void InitializeCommands()
+    {
+        _commands = new Dictionary<ConsoleKey, ICommand>
+        {
+            { ConsoleKey.W, new MoveCommand(_player, _builder, 0, -1) },
+            { ConsoleKey.S, new MoveCommand(_player, _builder, 0, 1) },
+            { ConsoleKey.A, new MoveCommand(_player, _builder, -1, 0) },
+            { ConsoleKey.D, new MoveCommand(_player, _builder, 1, 0) },
+            { ConsoleKey.E, new ActionCommand(TryToPickUpItem) },
+            { ConsoleKey.Q, new ActionCommand(TryToEquipItem) },
+            { ConsoleKey.DownArrow, new ActionCommand(_player.Backpack.MoveSelectedItemDown) },
+            { ConsoleKey.UpArrow, new ActionCommand(_player.Backpack.MoveSelectedItemUp) },
+            { ConsoleKey.T, new ActionCommand(TryToThrowItem) },
+            { ConsoleKey.L, new ActionCommand(TryToFreeLeftHand) },
+            { ConsoleKey.R, new ActionCommand(TryToFreeRightHand) }
+        };
     }
 
     public void StartGame()
@@ -27,7 +53,6 @@ public class GameEngine
             Console.BufferHeight = 40;
         }
 
-        _builder.BuildDungeon();
         RunLogic();
     }
 
@@ -39,41 +64,15 @@ public class GameEngine
             _render.RenderUI();
 
             cki = Console.ReadKey(true);
-            switch (cki.Key)
+            LastMessage = "";
+
+            if (_commands.TryGetValue(cki.Key, out ICommand? command))
             {
-                case ConsoleKey.W:
-                    TryMovePlayerUp();
-                    break;
-                case ConsoleKey.S:
-                    TryMovePlayerDown();
-                    break;
-                case ConsoleKey.A:
-                    TryMovePlayerLeft();
-                    break;
-                case ConsoleKey.D:
-                    TryMovePlayerRight();
-                    break;
-                case ConsoleKey.E:
-                    TryToPickUpItem();
-                    break;
-                case ConsoleKey.Q:
-                    TryToEquipItem();
-                    break;
-                case ConsoleKey.DownArrow:
-                    _player.Backpack.MoveSelectedItemDown();
-                    break;
-                case ConsoleKey.UpArrow:
-                    _player.Backpack.MoveSelectedItemUp();
-                    break;
-                case ConsoleKey.T:
-                    TryToThrowItem();
-                    break;
-                case ConsoleKey.L:
-                    TryToFreeLeftHand();
-                    break;
-                case ConsoleKey.R:
-                    TryToFreeRightHand();
-                    break;
+                command.Execute();
+            }
+            else
+            {
+                LastMessage = "Unknown command! Press the right key.";
             }
         } while (true);
     }
@@ -140,53 +139,5 @@ public class GameEngine
 
         _builder[_player.Y, _player.X].ItemsOnGround.Push(item);
         _player.Backpack.RemoveItem();
-    }
-
-    public void TryMovePlayerUp()
-    {
-        int targetX = _player.X;
-        int targetY = _player.Y - 1;
-
-        if (targetY < 0) return;
-
-        if (!_builder[targetY, targetX].IsPassable) return;
-
-        _player.Y = targetY;
-    }
-
-    public void TryMovePlayerDown()
-    {
-        int targetX = _player.X;
-        int targetY = _player.Y + 1;
-
-        if (targetY + 1 > _builder.Rows) return;
-
-        if (!_builder[targetY, targetX].IsPassable) return;
-
-        _player.Y = targetY;
-    }
-
-    public void TryMovePlayerLeft()
-    {
-        int targetX = _player.X - 1;
-        int targetY = _player.Y;
-
-        if (targetX < 0) return;
-
-        if (!_builder[targetY, targetX].IsPassable) return;
-
-        _player.X = targetX;
-    }
-
-    public void TryMovePlayerRight()
-    {
-        int targetX = _player.X + 1;
-        int targetY = _player.Y;
-
-        if (targetX + 1 > _builder.Columns) return;
-
-        if (!_builder[targetY, targetX].IsPassable) return;
-
-        _player.X = targetX;
     }
 }

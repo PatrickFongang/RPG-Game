@@ -2,7 +2,7 @@
 
 namespace RPGGame;
 
-public class Render(Builder builder, Player player)
+public class Render(Builder builder, Player player, GameEngine engine)
 {
     private void RenderBoard()
     {
@@ -32,16 +32,16 @@ public class Render(Builder builder, Player player)
 
     private void RenderPlayerBackpack()
     {
-        int startX = builder.Columns + 5; 
-        int columnWidth = 30; 
-    
+        int startX = builder.Columns + 5;
+        int columnWidth = 30;
+
         int currentX = startX;
         int currentY = 5;
 
         void PrintLine(string text, bool isHighlighted = false)
         {
             Console.SetCursorPosition(currentX, currentY);
-        
+
             if (isHighlighted)
             {
                 Console.BackgroundColor = ConsoleColor.White;
@@ -51,20 +51,20 @@ public class Render(Builder builder, Player player)
             Console.Write(text.PadRight(columnWidth));
             Console.ResetColor();
 
-            currentY++; 
+            currentY++;
 
             if (currentY - 5 >= builder.Rows)
             {
-                currentY = 6; 
-                currentX += columnWidth + 2; 
+                currentY = 6;
+                currentX += columnWidth + 2;
             }
         }
-        
+
         Console.ForegroundColor = ConsoleColor.Cyan;
         PrintLine("=== BACKPACK ===");
         Console.ResetColor();
 
-        var items = player.Backpack.Items; 
+        var items = player.Backpack.Items;
 
         if (items.Count == 0)
         {
@@ -78,7 +78,7 @@ public class Render(Builder builder, Player player)
             {
                 bool isSelected = (i == player.Backpack.SelectedItemIndex);
                 string itemText = items[i].ToString();
-            
+
                 PrintLine(itemText, isSelected);
             }
         }
@@ -88,6 +88,7 @@ public class Render(Builder builder, Player player)
             PrintLine(" ");
         }
     }
+
     private void RenderActionPrompt()
     {
         int promptY = builder.Rows + 1 + 4;
@@ -100,11 +101,11 @@ public class Render(Builder builder, Player player)
             Item topItem = itemsUnderPlayer.Peek();
 
             Console.ForegroundColor = ConsoleColor.Yellow;
-        
+
             string promptText = $"Press E to pick up: {topItem.ToString()} - \"{topItem.Description}\"";
-        
-            Console.Write(promptText.PadRight(100)); 
-        
+
+            Console.Write(promptText.PadRight(100));
+
             Console.ResetColor();
         }
         else
@@ -112,6 +113,7 @@ public class Render(Builder builder, Player player)
             Console.Write(new string(' ', 200));
         }
     }
+
     private void RenderControls()
     {
         int startY = builder.Rows + 6; 
@@ -122,14 +124,32 @@ public class Render(Builder builder, Player player)
         Console.ResetColor();
 
         Console.SetCursorPosition(0, startY + 1);
-        Console.Write("[W/A/S/D] Move       [E] Pick Up Item      [T] Drop/Throw Item".PadRight(80));
+        string row1 = "[W/A/S/D] Move\t";
+        if (builder.HasPickups) row1 += "[E] Pick Up\t";
+        if (builder.HasInventoryItems) row1 += "[↑/↓] Select\t[T] Drop";
+        Console.Write(row1.PadRight(80));
     
         Console.SetCursorPosition(0, startY + 2);
-        Console.Write("[↑ / ↓]   Select     [Q] Equip Selected".PadRight(80));
-    
+        string row2 = "";
+        if (builder.HasInventoryItems)
+        {
+            row2 = "[Q] Equip\t[L] Free L-Hand\t[R] Free R-Hand";
+        }
+        Console.Write(row2.PadRight(80));
+
         Console.SetCursorPosition(0, startY + 3);
-        Console.Write("[L] Free Left Hand   [R] Free Right Hand".PadRight(80));
+        if (engine != null && !string.IsNullOrEmpty(engine.LastMessage))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write(engine.LastMessage.PadRight(80));
+            Console.ResetColor();
+        }
+        else
+        {
+            Console.Write("".PadRight(80));
+        }
     }
+
     private void RenderEquippedItems()
     {
         Console.SetCursorPosition(0, 1);
@@ -145,9 +165,10 @@ public class Render(Builder builder, Player player)
         string rightHandText = player.RightHand != null ? player.RightHand.ToString() : "Empty";
         Console.Write($"Right Hand: {rightHandText}".PadRight(50));
     }
+
     private void RenderPlayerStats()
     {
-        int startX = builder.Columns + 5; 
+        int startX = builder.Columns + 5;
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Yellow;
@@ -160,9 +181,10 @@ public class Render(Builder builder, Player player)
         Console.SetCursorPosition(startX, 3);
         Console.Write($"Gold:  {player.Gold}".PadRight(30));
     }
+
     private void RenderPlayerAttributes()
     {
-        int startX = builder.Columns + 35; 
+        int startX = builder.Columns + 35;
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Green;
@@ -170,18 +192,19 @@ public class Render(Builder builder, Player player)
         Console.ResetColor();
 
         Console.SetCursorPosition(startX, 2);
-        Console.Write($"STR: {player.Strength, -5} AGI: {player.Agility}".PadRight(35));
+        Console.Write($"STR: {player.Strength,-5} AGI: {player.Agility}".PadRight(35));
 
         Console.SetCursorPosition(startX, 3);
-        Console.Write($"WIS: {player.Wisdom, -5} LUK: {player.Luck}".PadRight(35));
+        Console.Write($"WIS: {player.Wisdom,-5} LUK: {player.Luck}".PadRight(35));
 
         Console.SetCursorPosition(startX, 4);
-        Console.Write($"AGG: {player.Aggression, -5} HEL: {player.Health}".PadRight(35));
+        Console.Write($"AGG: {player.Aggression,-5} HEL: {player.Health}".PadRight(35));
     }
+
     public void RenderUI()
     {
         RenderBoard();
-       RenderActionPrompt();
+        RenderActionPrompt();
         RenderPlayerBackpack();
         RenderEquippedItems();
         RenderPlayerStats();
