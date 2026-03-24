@@ -2,38 +2,37 @@
 
 namespace RPGGame;
 
-public class Render(Board board, Player player)
+public class Render(Builder builder, Player player)
 {
     private void RenderBoard()
     {
-        Console.SetCursorPosition(0, 5);
-        for (int i = 0; i < board.Rows; i++)
+        for (int i = 0; i < builder.Rows; i++)
         {
-            for (int j = 0; j < board.Columns; j++)
+            Console.SetCursorPosition(0, 5 + i);
+            for (int j = 0; j < builder.Columns; j++)
             {
                 if (player.X == j && player.Y == i)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.Write('¶');
                 }
-                else if (board[i, j].ItemsOnGround.Count > 0)
+                else if (builder[i, j].ItemsOnGround.Count > 0)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.Write(board[i, j].ItemsOnGround.Peek().Symbol);
+                    Console.Write(builder[i, j].ItemsOnGround.Peek().Symbol);
                 }
                 else
                 {
-                    Console.ForegroundColor = board[i, j].GetColor();
-                    Console.Write(board[i, j].GetSymbol());
+                    Console.ForegroundColor = builder[i, j].GetColor();
+                    Console.Write(builder[i, j].GetSymbol());
                 }
             }
-            Console.WriteLine();
         }
     }
 
     private void RenderPlayerBackpack()
     {
-        int startX = board.Columns + 5; 
+        int startX = builder.Columns + 5; 
         int columnWidth = 30; 
     
         int currentX = startX;
@@ -54,7 +53,7 @@ public class Render(Board board, Player player)
 
             currentY++; 
 
-            if (currentY - 5 >= board.Rows)
+            if (currentY - 5 >= builder.Rows)
             {
                 currentY = 6; 
                 currentX += columnWidth + 2; 
@@ -91,10 +90,10 @@ public class Render(Board board, Player player)
     }
     private void RenderActionPrompt()
     {
-        int promptY = board.Rows + 1 + 4;
+        int promptY = builder.Rows + 1 + 4;
         Console.SetCursorPosition(0, promptY);
 
-        var itemsUnderPlayer = board[player.Y, player.X].ItemsOnGround;
+        var itemsUnderPlayer = builder[player.Y, player.X].ItemsOnGround;
 
         if (itemsUnderPlayer.Count > 0)
         {
@@ -115,27 +114,27 @@ public class Render(Board board, Player player)
     }
     private void RenderControls()
     {
-        int startY = board.Rows + 6; 
+        int startY = builder.Rows + 6; 
     
         Console.SetCursorPosition(0, startY);
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine("=== CONTROLS ===".PadRight(80));
+        Console.Write("=== CONTROLS ===".PadRight(80));
         Console.ResetColor();
 
         Console.SetCursorPosition(0, startY + 1);
-        Console.WriteLine("[W/A/S/D] Move       [E] Pick Up Item      [T] Drop/Throw Item".PadRight(80));
+        Console.Write("[W/A/S/D] Move       [E] Pick Up Item      [T] Drop/Throw Item".PadRight(80));
     
         Console.SetCursorPosition(0, startY + 2);
-        Console.WriteLine("[↑ / ↓]   Select     [Q] Equip Selected".PadRight(80));
+        Console.Write("[↑ / ↓]   Select     [Q] Equip Selected".PadRight(80));
     
         Console.SetCursorPosition(0, startY + 3);
-        Console.WriteLine("[L] Free Left Hand   [R] Free Right Hand".PadRight(80));
+        Console.Write("[L] Free Left Hand   [R] Free Right Hand".PadRight(80));
     }
     private void RenderEquippedItems()
     {
         Console.SetCursorPosition(0, 1);
         Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.WriteLine("=== EQUIPPED WEAPONS ===".PadRight(50));
+        Console.Write("=== EQUIPPED WEAPONS ===".PadRight(50));
         Console.ResetColor();
 
         Console.SetCursorPosition(0, 2);
@@ -148,7 +147,7 @@ public class Render(Board board, Player player)
     }
     private void RenderPlayerStats()
     {
-        int startX = board.Columns + 5; 
+        int startX = builder.Columns + 5; 
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Yellow;
@@ -163,7 +162,7 @@ public class Render(Board board, Player player)
     }
     private void RenderPlayerAttributes()
     {
-        int startX = board.Columns + 35; 
+        int startX = builder.Columns + 35; 
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Green;
@@ -182,7 +181,7 @@ public class Render(Board board, Player player)
     public void RenderUI()
     {
         RenderBoard();
-        RenderActionPrompt();
+       RenderActionPrompt();
         RenderPlayerBackpack();
         RenderEquippedItems();
         RenderPlayerStats();

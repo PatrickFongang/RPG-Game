@@ -4,15 +4,15 @@ namespace RPGGame;
 
 public class GameEngine
 {
-    private Board _board;
+    private Builder _builder;
     private Player _player;
     private Render _render;
 
     public GameEngine()
     {
-        _board = new Board(20, 40);
-        _player = new Player(0, 0);
-        _render = new Render(_board, _player);
+        _builder = new Builder(20,40);
+        _player = new Player(_builder.Columns / 2, _builder.Rows / 2);
+        _render = new Render(_builder, _player);
     }
 
     public void StartGame()
@@ -20,11 +20,14 @@ public class GameEngine
         Console.CursorVisible = false;
         if (OperatingSystem.IsWindows())
         {
-            Console.WindowHeight = 40; 
+            Console.WindowWidth = 120;
+            Console.BufferWidth = 120;
+
+            Console.WindowHeight = 40;
             Console.BufferHeight = 40;
         }
 
-        _board.FillTheBoard(10);
+        _builder.BuildDungeon();
         RunLogic();
     }
 
@@ -33,8 +36,8 @@ public class GameEngine
         ConsoleKeyInfo cki;
         do
         {
-           _render.RenderUI();
-            
+            _render.RenderUI();
+
             cki = Console.ReadKey(true);
             switch (cki.Key)
             {
@@ -92,6 +95,7 @@ public class GameEngine
             item.OnPickedUp(_player);
         }
     }
+
     public void TryToFreeRightHand()
     {
         Item? item = _player.RightHand;
@@ -109,20 +113,22 @@ public class GameEngine
             item.OnPickedUp(_player);
         }
     }
+
     public void TryToEquipItem()
     {
         Item? item = _player.Backpack.SelectedItem;
         if (item == null) return;
-        
+
         item.Equip(_player);
     }
+
     public void TryToPickUpItem()
     {
-        Cell currentCell = _board[_player.Y, _player.X];
-    
-        if (currentCell.ItemsOnGround.Count == 0) return; 
-        
-        Item item = currentCell.ItemsOnGround.Pop(); 
+        Cell currentCell = _builder[_player.Y, _player.X];
+
+        if (currentCell.ItemsOnGround.Count == 0) return;
+
+        Item item = currentCell.ItemsOnGround.Pop();
 
         item.OnPickedUp(_player);
     }
@@ -130,11 +136,12 @@ public class GameEngine
     public void TryToThrowItem()
     {
         Item? item = _player.Backpack.SelectedItem;
-        if(item == null) return;
-        
-        _board[_player.Y, _player.X].ItemsOnGround.Push(item);
+        if (item == null) return;
+
+        _builder[_player.Y, _player.X].ItemsOnGround.Push(item);
         _player.Backpack.RemoveItem();
     }
+
     public void TryMovePlayerUp()
     {
         int targetX = _player.X;
@@ -142,7 +149,7 @@ public class GameEngine
 
         if (targetY < 0) return;
 
-        if (!_board[targetY, targetX].IsPassable) return;
+        if (!_builder[targetY, targetX].IsPassable) return;
 
         _player.Y = targetY;
     }
@@ -152,9 +159,9 @@ public class GameEngine
         int targetX = _player.X;
         int targetY = _player.Y + 1;
 
-        if (targetY + 1 > _board.Rows) return;
+        if (targetY + 1 > _builder.Rows) return;
 
-        if (!_board[targetY, targetX].IsPassable) return;
+        if (!_builder[targetY, targetX].IsPassable) return;
 
         _player.Y = targetY;
     }
@@ -166,7 +173,7 @@ public class GameEngine
 
         if (targetX < 0) return;
 
-        if (!_board[targetY, targetX].IsPassable) return;
+        if (!_builder[targetY, targetX].IsPassable) return;
 
         _player.X = targetX;
     }
@@ -176,9 +183,9 @@ public class GameEngine
         int targetX = _player.X + 1;
         int targetY = _player.Y;
 
-        if (targetX + 1 > _board.Columns) return;
+        if (targetX + 1 > _builder.Columns) return;
 
-        if (!_board[targetY, targetX].IsPassable) return;
+        if (!_builder[targetY, targetX].IsPassable) return;
 
         _player.X = targetX;
     }
