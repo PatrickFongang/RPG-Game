@@ -1,25 +1,37 @@
 ﻿using RPGGame.Commands;
 using RPGGame.Items;
-using RPGGame.Strategies;
+using RPGGame.Combat;
 
 namespace RPGGame;
 
 public class GameEngine
 {
-    private Builder _builder;
-    private Player _player;
-    private Render _render;
+    public bool IsGameOver { get; private set; } = false;
+    
+    private readonly Dungeon _dungeon;
+    private readonly Player _player;
+    private readonly Render _render;
     private Dictionary<ConsoleKey, ICommand> _commands;
 
     public string LastMessage { get; set; } = "";
 
-    public GameEngine(IDungeonStrategy strategy)
-    {
-        _builder = new Builder(20, 40);
-        _player = new Player(_builder.Columns / 2, _builder.Rows / 2);
-        _render = new Render(_builder, _player, this);
+    public ConsoleKey KeyMoveUp { get; } = ConsoleKey.W;
+    public ConsoleKey KeyMoveDown { get; } = ConsoleKey.S;
+    public ConsoleKey KeyMoveLeft { get; } = ConsoleKey.A;
+    public ConsoleKey KeyMoveRight { get; } = ConsoleKey.D;
+    public ConsoleKey KeyPickUp { get; } = ConsoleKey.E;
+    public ConsoleKey KeyEquip { get; } = ConsoleKey.Q;
+    public ConsoleKey KeyDrop { get; } = ConsoleKey.T;
+    public ConsoleKey KeyFreeLeftHand { get; } = ConsoleKey.L;
+    public ConsoleKey KeyFreeRightHand { get; } = ConsoleKey.R;
+    public ConsoleKey KeyChangeStrategy { get; } = ConsoleKey.Z;
 
-        strategy.Generate(_builder);
+    public GameEngine(Dungeon dungeon)
+    {
+        _dungeon = dungeon;
+        _player = new Player(dungeon.Columns / 2, _dungeon.Rows / 2);
+        _render = new Render(_dungeon, _player, this);
+
         InitializeCommands();
     }
 
@@ -27,17 +39,18 @@ public class GameEngine
     {
         _commands = new Dictionary<ConsoleKey, ICommand>
         {
-            { ConsoleKey.W, new MoveCommand(_player, _builder, 0, -1) },
-            { ConsoleKey.S, new MoveCommand(_player, _builder, 0, 1) },
-            { ConsoleKey.A, new MoveCommand(_player, _builder, -1, 0) },
-            { ConsoleKey.D, new MoveCommand(_player, _builder, 1, 0) },
-            { ConsoleKey.E, new ActionCommand(TryToPickUpItem) },
-            { ConsoleKey.Q, new ActionCommand(TryToEquipItem) },
+            { KeyMoveUp, new MoveCommand(_player, _dungeon, this, 0, -1) },
+            { KeyMoveDown, new MoveCommand(_player, _dungeon, this, 0, 1) },
+            { KeyMoveLeft, new MoveCommand(_player, _dungeon, this, -1, 0) },
+            { KeyMoveRight, new MoveCommand(_player, _dungeon, this, 1, 0) },
+            { KeyPickUp, new ActionCommand(TryToPickUpItem) },
+            { KeyEquip, new ActionCommand(TryToEquipItem) },
             { ConsoleKey.DownArrow, new ActionCommand(_player.Backpack.MoveSelectedItemDown) },
             { ConsoleKey.UpArrow, new ActionCommand(_player.Backpack.MoveSelectedItemUp) },
-            { ConsoleKey.T, new ActionCommand(TryToThrowItem) },
-            { ConsoleKey.L, new ActionCommand(TryToFreeLeftHand) },
-            { ConsoleKey.R, new ActionCommand(TryToFreeRightHand) }
+            { KeyDrop, new ActionCommand(TryToThrowItem) },
+            { KeyFreeLeftHand, new ActionCommand(TryToFreeLeftHand) },
+            { KeyFreeRightHand, new ActionCommand(TryToFreeRightHand) },
+            { KeyChangeStrategy, new ActionCommand(CycleAttackStrategy) }
         };
     }
 
@@ -56,12 +69,70 @@ public class GameEngine
         RunLogic();
     }
 
-    public void RunLogic()
+    public void ResolveCombat(Enemy enemy, Cell cellWithEnemy)
+    {
+        IAttackVisitor attack = _player.CurrentAttackStrategy;
+
+
+        int leftHandDamage = _player.LeftHand != null 
+            ? _player.LeftHand.CalculateDamageWith(attack, _player) + _player.LeftHand.GetDamageModifier()
+            : 0;
+
+        int rightHandDamage = (_player.RightHand != null && _player.RightHand != _player.LeftHand) 
+            ? _player.RightHand.CalculateDamageWith(attack, _player) + _player.RightHand.GetDamageModifier() 
+            : 0;
+
+        int totalPlayerDamage = leftHandDamage + rightHandDamage;
+
+        int damageDealtToEnemy = Math.Max(0, totalPlayerDamage - enemy.Armor);
+        enemy.Health -= damageDealtToEnemy;
+
+        LastMessage = $"You attack! Dealing {damageDealtToEnemy} dmg (Enemy armor: {enemy.Armor}). ";
+
+        if (enemy.Health <= 0)
+        {
+            LastMessage += $"You killed the {enemy.Name}!";
+            cellWithEnemy.Enemy = null;
+            return;
+        }
+
+
+        int leftHandDefense = _player.LeftHand != null
+            ? _player.LeftHand.CalculateDefenseWith(attack, _player)
+            : attack.CalculateDefense((Item)null, _player);
+        int rightHandDefense = (_player.RightHand != null && _player.RightHand != _player.LeftHand)
+            ? _player.RightHand.CalculateDefenseWith(attack, _player)
+            : 0;
+
+        if (_player.LeftHand == null && _player.RightHand == null)
+        {
+            leftHandDefense = attack.CalculateDefense((Item)null, _player);
+        }
+
+        int totalPlayerDefense = leftHandDefense + rightHandDefense;
+
+        int damageDealtToPlayer = Math.Max(0, enemy.Attack - totalPlayerDefense);
+        _player.Health -= damageDealtToPlayer;
+
+        LastMessage += $" Enemy retaliates! You take {damageDealtToPlayer} dmg (Your defense: {totalPlayerDefense}).";
+
+        if (_player.Health <= 0)
+        {
+            IsGameOver = true;
+        }
+    }
+
+    private void RunLogic()
     {
         ConsoleKeyInfo cki;
         do
         {
             _render.RenderUI();
+            
+            if (IsGameOver)
+            {
+                break; 
+            }
 
             cki = Console.ReadKey(true);
             LastMessage = "";
@@ -75,9 +146,13 @@ public class GameEngine
                 LastMessage = "Unknown command! Press the right key.";
             }
         } while (true);
+        
+        _render.RenderGameOverScreen();
+        Console.ReadKey(true);
+        Environment.Exit(0);
     }
 
-    public void TryToFreeLeftHand()
+    private void TryToFreeLeftHand()
     {
         Item? item = _player.LeftHand;
         if (item == null) return;
@@ -95,7 +170,7 @@ public class GameEngine
         }
     }
 
-    public void TryToFreeRightHand()
+    private void TryToFreeRightHand()
     {
         Item? item = _player.RightHand;
         if (item == null) return;
@@ -113,31 +188,77 @@ public class GameEngine
         }
     }
 
-    public void TryToEquipItem()
+    private void TryToPickUpItem()
     {
-        Item? item = _player.Backpack.SelectedItem;
-        if (item == null) return;
-
-        item.Equip(_player);
-    }
-
-    public void TryToPickUpItem()
-    {
-        Cell currentCell = _builder[_player.Y, _player.X];
-
+        Cell currentCell = _dungeon[_player.Y, _player.X];
         if (currentCell.ItemsOnGround.Count == 0) return;
 
         Item item = currentCell.ItemsOnGround.Pop();
 
         item.OnPickedUp(_player);
+
+        if (item.GoesToBackpack)
+        {
+            _player.Backpack.AddItem(item);
+        }
     }
 
-    public void TryToThrowItem()
+    private void TryToEquipItem()
     {
         Item? item = _player.Backpack.SelectedItem;
         if (item == null) return;
 
-        _builder[_player.Y, _player.X].ItemsOnGround.Push(item);
+        if (!item.IsEquippable) return;
+
+        if (item.IsTwoHanded)
+        {
+            if (_player.LeftHand == null && _player.RightHand == null)
+            {
+                _player.LeftHand = item;
+                _player.RightHand = item;
+                _player.Backpack.RemoveItem();
+            }
+        }
+        else
+        {
+            if (_player.LeftHand == null)
+            {
+                _player.LeftHand = item;
+                _player.Backpack.RemoveItem();
+            }
+            else if (_player.RightHand == null)
+            {
+                _player.RightHand = item;
+                _player.Backpack.RemoveItem();
+            }
+        }
+    }
+
+    private void TryToThrowItem()
+    {
+        Item? item = _player.Backpack.SelectedItem;
+        if (item == null) return;
+
+        _dungeon[_player.Y, _player.X].ItemsOnGround.Push(item);
         _player.Backpack.RemoveItem();
+    }
+
+    private void CycleAttackStrategy()
+    {
+        if (_player.CurrentAttackStrategy is NormalAttack)
+        {
+            _player.ChangeAttackStrategy(new StealthAttack());
+            LastMessage = "Changed attack to Stealth";
+        }
+        else if (_player.CurrentAttackStrategy is StealthAttack)
+        {
+            _player.ChangeAttackStrategy(new MagicAttack());
+            LastMessage = "Changed attack to Magic";
+        }
+        else
+        {
+            _player.ChangeAttackStrategy(new NormalAttack());
+            LastMessage = "Changed attack to Normal";
+        }
     }
 }

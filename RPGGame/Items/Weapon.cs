@@ -1,36 +1,30 @@
-﻿namespace RPGGame.Items;
+﻿using RPGGame.Combat;
 
-public class Weapon(string name, char symbol, int rarity, int damage, bool isTwoHanded, String description)
+namespace RPGGame.Items;
+
+public class Weapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description)
     : Item(name, symbol, rarity, description)
 {
-    public int Damage { get; set; } = damage;
-    public bool IsTwoHanded { get; set; } = isTwoHanded;
+    public int BaseDamage { get; protected set; } = baseDamage;
+    public override bool IsTwoHanded { get; } = isTwoHanded; 
+}
+public class HeavyWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description)
+    : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
+{ 
+    public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
+    public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
+}
 
-    public override void OnPickedUp(Player player)
-    {
-        player.Backpack.AddItem(this);
-    }
+public class  LightWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description) 
+    : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
+{ 
+    public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
+    public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
+}
 
-    public override void Equip(Player player)
-    {
-        if (this.IsTwoHanded)
-        {
-            if (player.LeftHand == null && player.RightHand == null)
-            {
-                player.LeftHand = this;
-                player.RightHand = this;
-                player.Backpack.RemoveItem();
-            }
-        }
-        else if (player.LeftHand == null)
-        {
-            player.LeftHand = this;
-            player.Backpack.RemoveItem();
-        }
-        else if (player.RightHand == null)
-        {
-            player.RightHand = this;
-            player.Backpack.RemoveItem();
-        }
-    }
+public class MagicWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description) 
+    : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
+{
+    public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
+    public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
 }

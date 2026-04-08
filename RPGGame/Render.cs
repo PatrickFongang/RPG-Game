@@ -2,29 +2,29 @@
 
 namespace RPGGame;
 
-public class Render(Builder builder, Player player, GameEngine engine)
+public class Render(Dungeon dungeon, Player player, GameEngine engine)
 {
     private void RenderBoard()
     {
-        for (int i = 0; i < builder.Rows; i++)
+        for (int i = 0; i < dungeon.Rows; i++)
         {
             Console.SetCursorPosition(0, 5 + i);
-            for (int j = 0; j < builder.Columns; j++)
+            for (int j = 0; j < dungeon.Columns; j++)
             {
                 if (player.X == j && player.Y == i)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.Write('¶');
                 }
-                else if (builder[i, j].ItemsOnGround.Count > 0)
+                else if (dungeon[i, j].ItemsOnGround.Count > 0)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.Write(builder[i, j].ItemsOnGround.Peek().Symbol);
+                    Console.Write(dungeon[i, j].ItemsOnGround.Peek().Symbol);
                 }
                 else
                 {
-                    Console.ForegroundColor = builder[i, j].GetColor();
-                    Console.Write(builder[i, j].GetSymbol());
+                    Console.ForegroundColor = dungeon[i, j].GetColor();
+                    Console.Write(dungeon[i, j].GetSymbol());
                 }
             }
         }
@@ -32,7 +32,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
     private void RenderPlayerBackpack()
     {
-        int startX = builder.Columns + 5;
+        int startX = dungeon.Columns + 5;
         int columnWidth = 30;
 
         int currentX = startX;
@@ -53,7 +53,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
             currentY++;
 
-            if (currentY - 5 >= builder.Rows)
+            if (currentY - 5 >= dungeon.Rows)
             {
                 currentY = 6;
                 currentX += columnWidth + 2;
@@ -91,10 +91,10 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
     private void RenderActionPrompt()
     {
-        int promptY = builder.Rows + 1 + 4;
+        int promptY = dungeon.Rows + 1 + 4;
         Console.SetCursorPosition(0, promptY);
 
-        var itemsUnderPlayer = builder[player.Y, player.X].ItemsOnGround;
+        var itemsUnderPlayer = dungeon[player.Y, player.X].ItemsOnGround;
 
         if (itemsUnderPlayer.Count > 0)
         {
@@ -102,7 +102,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
             Console.ForegroundColor = ConsoleColor.Yellow;
 
-            string promptText = $"Press E to pick up: {topItem.ToString()} - \"{topItem.Description}\"";
+            string promptText = $"Press {engine.KeyPickUp} to pick up: {topItem.ToString()} - \"{topItem.Description}\"";
 
             Console.Write(promptText.PadRight(100));
 
@@ -116,7 +116,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
     private void RenderControls()
     {
-        int startY = builder.Rows + 6; 
+        int startY = dungeon.Rows + 6; 
     
         Console.SetCursorPosition(0, startY);
         Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -124,16 +124,16 @@ public class Render(Builder builder, Player player, GameEngine engine)
         Console.ResetColor();
 
         Console.SetCursorPosition(0, startY + 1);
-        string row1 = "[W/A/S/D] Move\t";
-        if (builder.HasPickups) row1 += "[E] Pick Up\t";
-        if (builder.HasInventoryItems) row1 += "[↑/↓] Select\t[T] Drop";
+        string row1 = $"[{engine.KeyMoveUp}/{engine.KeyMoveLeft}/{engine.KeyMoveDown}/{engine.KeyMoveRight}] Move\t";
+        if (dungeon.HasPickups) row1 += $"[{engine.KeyPickUp}] Pick Up\t";
+        if (dungeon.HasInventoryItems) row1 += $"[↑/↓] Select\t[{engine.KeyDrop}] Drop";
         Console.Write(row1.PadRight(80));
     
         Console.SetCursorPosition(0, startY + 2);
         string row2 = "";
-        if (builder.HasInventoryItems)
+        if (dungeon.HasInventoryItems)
         {
-            row2 = "[Q] Equip\t[L] Free L-Hand\t[R] Free R-Hand";
+            row2 = $"[{engine.KeyEquip}] Equip\t[{engine.KeyFreeLeftHand}] Free L-Hand\t[{engine.KeyFreeRightHand}] Free R-Hand\t[{engine.KeyChangeStrategy}] Change Atk";
         }
         Console.Write(row2.PadRight(80));
 
@@ -141,12 +141,12 @@ public class Render(Builder builder, Player player, GameEngine engine)
         if (engine != null && !string.IsNullOrEmpty(engine.LastMessage))
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write(engine.LastMessage.PadRight(80));
+            Console.Write(engine.LastMessage.PadRight(100));
             Console.ResetColor();
         }
         else
         {
-            Console.Write("".PadRight(80));
+            Console.Write("".PadRight(100));
         }
     }
 
@@ -168,7 +168,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
     private void RenderPlayerStats()
     {
-        int startX = builder.Columns + 5;
+        int startX = dungeon.Columns + 5;
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Yellow;
@@ -184,7 +184,7 @@ public class Render(Builder builder, Player player, GameEngine engine)
 
     private void RenderPlayerAttributes()
     {
-        int startX = builder.Columns + 35;
+        int startX = dungeon.Columns + 35;
 
         Console.SetCursorPosition(startX, 1);
         Console.ForegroundColor = ConsoleColor.Green;
@@ -192,13 +192,19 @@ public class Render(Builder builder, Player player, GameEngine engine)
         Console.ResetColor();
 
         Console.SetCursorPosition(startX, 2);
-        Console.Write($"STR: {player.Strength,-5} AGI: {player.Agility}".PadRight(35));
+        Console.Write($"STR: {player.BaseStrength,-5} AGI: {player.BaseAgility}".PadRight(35));
 
         Console.SetCursorPosition(startX, 3);
-        Console.Write($"WIS: {player.Wisdom,-5} LUK: {player.Luck}".PadRight(35));
+        Console.Write($"WIS: {player.BaseWisdom,-5} LUK: {player.BaseLuck}".PadRight(35));
 
         Console.SetCursorPosition(startX, 4);
         Console.Write($"AGG: {player.Aggression,-5} HEL: {player.Health}".PadRight(35));
+        
+        Console.SetCursorPosition(startX, 5);
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        string attackName = player.CurrentAttackStrategy.GetType().Name.Replace("Attack", "").ToUpper();
+        Console.Write($"ATK MODE: {attackName}".PadRight(35));
+        Console.ResetColor();
     }
 
     public void RenderUI()
@@ -210,5 +216,42 @@ public class Render(Builder builder, Player player, GameEngine engine)
         RenderPlayerStats();
         RenderPlayerAttributes();
         RenderControls();
+    }
+    public void RenderGameOverScreen()
+    {
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Red;
+        
+        string[] gameOverArt = 
+        {
+            " __   __  _______  __   __    ______   ___   _______  ______  ",
+            "|  | |  ||       ||  | |  |  |      | |   | |       ||      | ",
+            "|  |_|  ||   _   ||  | |  |  |  _    ||   | |    ___||  _    |",
+            "|       ||  | |  ||  |_|  |  | | |   ||   | |   |___ | | |   |",
+            "|_     _||  |_|  ||       |  | |_|   ||   | |    ___|| |_|   |",
+            "  |   |  |       ||       |  |       ||   | |   |___ |       |",
+            "  |___|  |_______||_______|  |______| |___| |_______||______| "
+        };
+
+        int startY = 10;
+        foreach (string line in gameOverArt)
+        {
+            Console.SetCursorPosition((120 - line.Length) / 2, startY++);
+            Console.WriteLine(line);
+        }
+
+        Console.ResetColor();
+
+        string statsMessage = $"You died, but you managed to collect {player.Coins} Coins and {player.Gold} Gold.";
+        Console.SetCursorPosition((120 - statsMessage.Length) / 2, startY + 2);
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine(statsMessage);
+        
+        string exitMessage = "Press any key to exit the game...";
+        Console.SetCursorPosition((120 - exitMessage.Length) / 2, startY + 4);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine(exitMessage);
+        
+        Console.ResetColor();
     }
 }

@@ -1,16 +1,39 @@
-﻿namespace RPGGame.Items;
+﻿using RPGGame.Combat;
 
-public abstract class Item(string name, char symbol, int rarity, String description)
+namespace RPGGame.Items;
+
+public abstract class Item
 {
-    public string Name { get; } = name;
-    public char Symbol { get; } = symbol;
-    public int Rarity { get; } = rarity;
-    public string Description { get; } = description;
-    public abstract void OnPickedUp(Player player);
-    public abstract void Equip(Player player);
+    public string Name { get; protected set; }
+    public char Symbol { get; }
+    public int Rarity { get; }
+    public string Description { get; protected set; }
 
-    public override string ToString()
+    public Item(string name, char symbol, int rarity, string description)
     {
-        return $"[{Symbol}] {Name}";
+        Name = name;
+        Symbol = symbol;
+        Rarity = rarity;
+        Description = description;
     }
+
+    public virtual int GetLuckModifier() => 0;
+    public virtual int GetDamageModifier() => 0;
+
+    public virtual bool GoesToBackpack => true;
+    public virtual bool IsEquippable => true;
+    public virtual bool IsTwoHanded => false;
+
+    public virtual void OnPickedUp(Player player) { }
+    public virtual int CalculateDamageWith(IAttackVisitor attack, Player player)
+    {
+        return attack.CalculateDamage(this, player);
+    }
+
+    public virtual int CalculateDefenseWith(IAttackVisitor attack, Player player)
+    {
+        return attack.CalculateDefense(this, player);
+    }
+
+    public override string ToString() => $"[{Symbol}] {Name}";
 }
