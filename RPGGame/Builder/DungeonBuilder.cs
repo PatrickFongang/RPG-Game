@@ -1,12 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices.Swift;
 using RPGGame.Items;
+using RPGGame.Themes;
 
 namespace RPGGame.Builder;
 
 public class DungeonBuilder : IDungeonBuilder
 {
     private Random random = new Random();
+    private IDungeonTheme? _theme;
 
     private Dungeon _dungeon;
     private int _rows;
@@ -23,7 +25,10 @@ public class DungeonBuilder : IDungeonBuilder
         _columns = columns;
         Reset();
     }
-
+    public void SetTheme(IDungeonTheme theme)
+    {
+        _theme = theme;
+    }
     public void Reset()
     {
         _dungeon = new Dungeon(_rows, _columns);
@@ -52,64 +57,92 @@ public class DungeonBuilder : IDungeonBuilder
         }
 
         _numberOfWalls = _rows * _columns;
+        AddCentralHall(1,1);
     }
 
     public void AddRooms(int numberOfRooms)
     {
-        if (numberOfRooms < 1 || numberOfRooms > _numberOfWalls) return;
+        if (numberOfRooms < 1) return;
 
         for (int i = 0; i < numberOfRooms; i++)
         {
-            int row, column;
-            do
-            {
-                row = random.Next(0, _rows);
-                column = random.Next(0, _columns);
-            } while (_dungeon[row, column].IsPassable);
+            int roomWidth = random.Next(4, 10);
+            int roomHeight = random.Next(3, 7);
 
-            _dungeon[row, column] = new GroundCell();
-            _numberOfWalls--;
+            int startRow = random.Next(1, Math.Max(2, _rows - roomHeight - 1));
+            int startCol = random.Next(1, Math.Max(2, _columns - roomWidth - 1));
+
+            for (int r = startRow; r < startRow + roomHeight && r < _rows - 1; r++)
+            {
+                for (int c = startCol; c < startCol + roomWidth && c < _columns - 1; c++)
+                {
+                    _dungeon[r, c] = new GroundCell();
+                }
+            }
         }
     }
 
     public void AddJunkItems(int numberOfJunkItems)
     {
-        if (numberOfJunkItems < 1) return;
+        if (numberOfJunkItems < 1 || _theme == null) return;
         _dungeon.HasPickups = true;
         _dungeon.HasInventoryItems = true;
 
         for (int i = 0; i < numberOfJunkItems; i++)
         {
             (int row, int col) field = GetRandomField();
-            int index = random.Next(0, _numberOfDifferentJunkItems);
-            _dungeon[field.row, field.col].ItemsOnGround.Push(GetJunkItem(index));
+            _dungeon[field.row, field.col].ItemsOnGround.Push(_theme.CreateJunkItem(random));
         }
     }
 
     public void AddWeapons(int numberOfWeapons)
     {
-        if (numberOfWeapons < 1) return;
+        if (numberOfWeapons < 1 || _theme == null) return;
         _dungeon.HasPickups = true;
         _dungeon.HasInventoryItems = true;
 
         for (int i = 0; i < numberOfWeapons; i++)
         {
             (int row, int col) field = GetRandomField();
-            int index = random.Next(0, _numberOfDifferentWeapons);
-            _dungeon[field.row, field.col].ItemsOnGround.Push(GetWeaponItem(index));
+            _dungeon[field.row, field.col].ItemsOnGround.Push(_theme.CreateWeaponItem(random));
         }
     }
 
     public void AddCurrencies(int numberOfCurrencies)
     {
-        if (numberOfCurrencies < 1) return;
+        if (numberOfCurrencies < 1 || _theme == null) return;
         _dungeon.HasPickups = true;
 
         for (int i = 0; i < numberOfCurrencies; i++)
         {
             (int row, int col) field = GetRandomField();
-            int index = random.Next(0, _numberOfDifferentCurrencies);
-            _dungeon[field.row, field.col].ItemsOnGround.Push(GetCurrencyItem(index));
+            _dungeon[field.row, field.col].ItemsOnGround.Push(_theme.CreateCurrencyItem(random));
+        }
+    }
+
+    public void AddArtifact()
+    {
+        if (_theme == null) return;
+        _dungeon.HasPickups = true;
+        _dungeon.HasInventoryItems = true;
+        
+        (int row, int col) field = GetRandomField();
+        _dungeon[field.row, field.col].ItemsOnGround.Push(_theme.CreateArtifact());
+    }
+
+    public void AddEnemies(int numberOfEnemies)
+    {
+        if (numberOfEnemies < 1 || _theme == null) return;
+
+        for (int i = 0; i < numberOfEnemies; i++)
+        {
+            int row, column;
+            do
+            {
+                (row, column) = GetRandomField();
+            } while (_dungeon[row, column].Enemy != null);
+
+            _dungeon[row, column].Enemy = _theme.CreateEnemy(random);
         }
     }
 
@@ -173,29 +206,6 @@ public class DungeonBuilder : IDungeonBuilder
         }
     }
 
-    public void AddEnemies(int numberOfEnemies)
-    {
-        if (numberOfEnemies < 1) return;
-
-        for (int i = 0; i < numberOfEnemies; i++)
-        {
-            int row, column;
-            do
-            {
-                (row, column) = GetRandomField();
-            } while (_dungeon[row, column].Enemy != null);
-
-            int enemyType = random.Next(0, 2);
-            Enemy newEnemy = enemyType switch
-            {
-                0 => new Enemy("Goblin", 'g', health: 30, attack: 12, armor: 3),
-                _ => new Enemy("Orc", 'O', health: 50, attack: 18, armor: 5)
-            };
-
-            _dungeon[row, column].Enemy = newEnemy;
-        }
-    }
-
     public Dungeon GetDungeon()
     {
         Dungeon result = _dungeon;
@@ -213,65 +223,5 @@ public class DungeonBuilder : IDungeonBuilder
         } while (!_dungeon[row, column].IsPassable);
 
         return (row, column);
-    }
-
-    private Item GetJunkItem(int index)
-    {
-        Item junkItem = index switch
-        {
-            0 => new JunkItem("Old Boot", 'b', 5, "Someone lost it ages ago"),
-            1 => new JunkItem("Skull", 'x', 3, "Empty inside."),
-            _ => new JunkItem("Broken Compas", 'o', 3, "It only points south.")
-        };
-        if (random.Next(100) < 20)
-        {
-            junkItem = new LuckModifierDecorator(junkItem, "Unlucky", -3);
-        }
-        else if (random.Next(100) < 40)
-        {
-            junkItem = new LuckModifierDecorator(junkItem, "Lucky", 4);
-        }
-
-        return junkItem;
-    }
-
-    private Item GetWeaponItem(int index)
-    {
-        Item weapon = index switch
-        {
-            0 => new LightWeapon("Rusty Dagger", '/', 3, 5, false, "Short but sharp."),
-            1 => new LightWeapon("Steel Sword", 't', 2, 12, false, "A classic forged by a blacksmith."),
-            _ => new HeavyWeapon("Orcish Greataxe", 'T', 1, 25, true, "Requires both hands to swing.")
-        };
-
-        if (random.Next(100) < 50)
-        {
-            weapon = new DamageModifierDecorator(weapon, "Strong", 5);
-        }
-
-        if (random.Next(100) < 30)
-        {
-            weapon = new LuckModifierDecorator(weapon, "Unlucky", -3);
-        }
-        else if (random.Next(100) < 15)
-        {
-            weapon = new LuckModifierDecorator(weapon, "Lucky", 4);
-        }
-
-        return weapon;
-    }
-
-    private Item GetCurrencyItem(int index)
-    {
-
-        Item currItem = index switch
-        {
-            0 => new CoinItem("Coin", 'c', 3, 5,
-                "A small leather pouch clinking with standard copper coins."),
-            _ => new GoldItem("Gold", 'G', 2, 15,
-                "A shiny, heavy ingot of solid gold. Merchants will love this.")
-        };
-
-        return currItem;
     }
 }

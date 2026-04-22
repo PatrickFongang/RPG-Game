@@ -7,22 +7,20 @@ public abstract class CurrencyItem(string name, char symbol, int rarity, int amo
     
     public override bool IsEquippable => false;
     public override bool GoesToBackpack => false;
+    public override void OnPickedUp(Player player)
+    {
+        if (!player.Wallet.ContainsKey(Name))
+        {
+            player.Wallet[Name] = 0;
+        }
+        player.Wallet[Name] += Amount;
+    }
 }
 
 public class CoinItem(string name, char symbol, int rarity, int amount, string description) 
     : CurrencyItem(name, symbol, rarity, amount, description)
-{
-    public override void OnPickedUp(Player player)
-    {
-        player.Coins += Amount; 
-    }
-}
+{ }
 
 public class GoldItem(string name, char symbol, int rarity, int amount, string description)
     : CurrencyItem(name, symbol, rarity, amount, description)
-{
-    public override void OnPickedUp(Player player)
-    {
-        player.Gold += Amount;
-    }
-}
+{ }

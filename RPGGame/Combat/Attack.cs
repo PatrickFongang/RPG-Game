@@ -3,8 +3,8 @@ using RPGGame.Items;
 
 public class NormalAttack : IAttackVisitor
 {
-    public int CalculateDamage(HeavyWeapon weapon, Player player) => weapon.BaseDamage + weapon.GetDamageModifier() + player.Strength + player.Aggression;
-    public int CalculateDamage(LightWeapon weapon, Player player) => weapon.BaseDamage + weapon.GetDamageModifier() + player.Agility + player.Luck;
+    public int CalculateDamage(HeavyWeapon weapon, Player player) => weapon.BaseDamage + player.Strength + player.Aggression;
+    public int CalculateDamage(LightWeapon weapon, Player player) => weapon.BaseDamage + player.Agility + player.Luck;
     public int CalculateDamage(MagicWeapon weapon, Player player) => 1;
     public int CalculateDamage(Item notAWeapon, Player player) => 0;
 
@@ -16,8 +16,8 @@ public class NormalAttack : IAttackVisitor
 
 public class StealthAttack : IAttackVisitor
 {
-    public int CalculateDamage(HeavyWeapon weapon, Player player) => (weapon.BaseDamage + weapon.GetDamageModifier()) / 2;
-    public int CalculateDamage(LightWeapon weapon, Player player) => (weapon.BaseDamage + weapon.GetDamageModifier()) * 2; 
+    public int CalculateDamage(HeavyWeapon weapon, Player player) => weapon.BaseDamage / 2;
+    public int CalculateDamage(LightWeapon weapon, Player player) => weapon.BaseDamage * 2; 
     public int CalculateDamage(MagicWeapon weapon, Player player) => 1;
     public int CalculateDamage(Item notAWeapon, Player player) => 0;
 
@@ -31,7 +31,7 @@ public class MagicAttack : IAttackVisitor
 {
     public int CalculateDamage(HeavyWeapon weapon, Player player) => 1;
     public int CalculateDamage(LightWeapon weapon, Player player) => 1;
-    public int CalculateDamage(MagicWeapon weapon, Player player) => weapon.BaseDamage + weapon.GetDamageModifier() + player.Wisdom;
+    public int CalculateDamage(MagicWeapon weapon, Player player) => weapon.BaseDamage + player.Wisdom;
     public int CalculateDamage(Item notAWeapon, Player player) => 0;
 
     public int CalculateDefense(HeavyWeapon weapon, Player player) => player.Luck;

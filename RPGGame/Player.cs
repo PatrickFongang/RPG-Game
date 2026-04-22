@@ -1,4 +1,5 @@
 ﻿using RPGGame.Combat;
+using RPGGame.Config;
 using RPGGame.Items;
 
 namespace RPGGame;
@@ -6,13 +7,13 @@ namespace RPGGame;
 public class Player(int startX, int startY)
 {
     public Inventory Backpack { get; } = new Inventory();
+    public Dictionary<string, int> Wallet { get; } = new Dictionary<string, int>();
+    public string PlayerName { get; private set; } = ConfigManager.Instance.Config.PlayerName;
 
     public Item? LeftHand { get; set; }
     public Item? RightHand { get; set; }
     public int X { get; set; } = startX;
     public int Y { get; set; } = startY;
-    public int Coins { get; set; }
-    public int Gold { get; set; }
 
     public int BaseStrength { get; set; } = 8;
     public int BaseAgility { get; set; } = 7;
@@ -38,10 +39,20 @@ public class Player(int startX, int startY)
             return totalLuck;
         }
     }
+    
+    public int Wisdom
+    {
+        get
+        {
+            int totalWisdom = BaseWisdom;
+            if (LeftHand != null) totalWisdom += LeftHand.GetWisdomModifier();
+            if (RightHand != null && RightHand != LeftHand) totalWisdom += RightHand.GetWisdomModifier();
+            return totalWisdom;
+        }
+    }
 
     public int Strength => BaseStrength; 
     public int Agility => BaseAgility;
-    public int Wisdom => BaseWisdom;
     public int Aggression { get; set; } = 10;
     public int Health { get; set; } = 100;
     public IAttackVisitor CurrentAttackStrategy { get; private set; } = new NormalAttack();

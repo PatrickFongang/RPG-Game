@@ -1,4 +1,6 @@
-﻿namespace RPGGame.Commands;
+﻿using RPGGame.Logging;
+
+namespace RPGGame.Commands;
 
 public class MoveCommand : ICommand
 {
@@ -31,7 +33,11 @@ public class MoveCommand : ICommand
             return; 
         }
 
-        if (!targetCell.IsPassable) return;
+        if (!targetCell.IsPassable)
+        {
+            EventLogger.Instance.Log($"{_player.PlayerName} tried to walk into a wall.");
+            return;
+        }
 
         _player.X = targetX;
         _player.Y = targetY;

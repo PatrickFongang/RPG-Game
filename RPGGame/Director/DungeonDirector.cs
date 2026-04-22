@@ -1,4 +1,5 @@
 ﻿using RPGGame.Builder;
+using RPGGame.Themes;
 
 namespace RPGGame.Director;
 
@@ -10,41 +11,17 @@ public class DungeonDirector
     {
         _builder = builder;
     }
-
-    public void ChangeBuilder(IDungeonBuilder builder)
-    {
-        _builder = builder;
-    }
-
-    public void ConstructStandardDungeon()
+    public void ConstructThemedDungeon(IDungeonTheme theme)
     {
         _builder.Reset();
-        _builder.BuildEmptyDungeon();
-        _builder.BuildFilledDungeon();
-        _builder.GenerateMazeDfs();
-        _builder.AddCentralHall(4, 8);
-        _builder.AddJunkItems(2);
+        _builder.SetTheme(theme);
+        
+        theme.ApplyLayoutStrategy(_builder); 
+        
+        _builder.AddJunkItems(3);
         _builder.AddWeapons(2);
-        _builder.AddCurrencies(2);
-    }
-
-    public void ConstructEmptyRoom()
-    {
-        _builder.Reset();
-        _builder.BuildEmptyDungeon();
-        _builder.AddCurrencies(5);
-    }
-
-    public void ConstructStandardDungeonWithEnemies()
-    {
-        _builder.Reset();
-        _builder.BuildEmptyDungeon();
-        _builder.BuildFilledDungeon();
-        _builder.GenerateMazeDfs();
-        _builder.AddCentralHall(4, 8);
-        _builder.AddJunkItems(2);
-        _builder.AddWeapons(2);
-        _builder.AddCurrencies(2);
-        _builder.AddEnemies(2);
+        _builder.AddCurrencies(3);
+        _builder.AddEnemies(3);
+        _builder.AddArtifact();
     }
 }

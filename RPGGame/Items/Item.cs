@@ -19,6 +19,7 @@ public abstract class Item
 
     public virtual int GetLuckModifier() => 0;
     public virtual int GetDamageModifier() => 0;
+    public virtual int GetWisdomModifier() => 0;
 
     public virtual bool GoesToBackpack => true;
     public virtual bool IsEquippable => true;

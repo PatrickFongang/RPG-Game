@@ -14,6 +14,7 @@ public abstract class ItemDecorator : Item
 
     public override int GetLuckModifier() => _wrappee.GetLuckModifier();
     public override int GetDamageModifier() => _wrappee.GetDamageModifier();
+    public override int GetWisdomModifier() => _wrappee.GetWisdomModifier();
     
     public override int CalculateDamageWith(IAttackVisitor attack, Player player) => _wrappee.CalculateDamageWith(attack, player);
     public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => _wrappee.CalculateDefenseWith(attack, player);
@@ -54,5 +55,20 @@ public class DamageModifierDecorator : ItemDecorator
     public override int GetDamageModifier()
     {
         return _wrappee.GetDamageModifier() + _damageChange;
+    }
+}
+public class WisdomModifierDecorator : ItemDecorator
+{
+    private readonly int _wisdomChange;
+
+    public WisdomModifierDecorator(Item wrappee, string prefix, int wisdomChange) 
+        : base(wrappee, prefix)
+    {
+        _wisdomChange = wisdomChange;
+    }
+
+    public override int GetWisdomModifier()
+    {
+        return _wrappee.GetWisdomModifier() + _wisdomChange;
     }
 }

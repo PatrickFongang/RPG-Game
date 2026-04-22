@@ -1,6 +1,7 @@
 ﻿using RPGGame.Commands;
 using RPGGame.Items;
 using RPGGame.Combat;
+using RPGGame.Logging;
 
 namespace RPGGame;
 
@@ -12,9 +13,7 @@ public class GameEngine
     private readonly Player _player;
     private readonly Render _render;
     private Dictionary<ConsoleKey, ICommand> _commands;
-
-    public string LastMessage { get; set; } = "";
-
+    
     public ConsoleKey KeyMoveUp { get; } = ConsoleKey.W;
     public ConsoleKey KeyMoveDown { get; } = ConsoleKey.S;
     public ConsoleKey KeyMoveLeft { get; } = ConsoleKey.A;
@@ -25,6 +24,7 @@ public class GameEngine
     public ConsoleKey KeyFreeLeftHand { get; } = ConsoleKey.L;
     public ConsoleKey KeyFreeRightHand { get; } = ConsoleKey.R;
     public ConsoleKey KeyChangeStrategy { get; } = ConsoleKey.Z;
+    public ConsoleKey KeyViewLogs { get; } = ConsoleKey.J;
 
     public GameEngine(Dungeon dungeon)
     {
@@ -50,7 +50,8 @@ public class GameEngine
             { KeyDrop, new ActionCommand(TryToThrowItem) },
             { KeyFreeLeftHand, new ActionCommand(TryToFreeLeftHand) },
             { KeyFreeRightHand, new ActionCommand(TryToFreeRightHand) },
-            { KeyChangeStrategy, new ActionCommand(CycleAttackStrategy) }
+            { KeyChangeStrategy, new ActionCommand(CycleAttackStrategy) },
+            { KeyViewLogs, new ActionCommand(ShowFullLogs) }
         };
     }
 
@@ -87,11 +88,11 @@ public class GameEngine
         int damageDealtToEnemy = Math.Max(0, totalPlayerDamage - enemy.Armor);
         enemy.Health -= damageDealtToEnemy;
 
-        LastMessage = $"You attack! Dealing {damageDealtToEnemy} dmg (Enemy armor: {enemy.Armor}). ";
+        EventLogger.Instance.Log($"{_player.PlayerName} attacked {enemy.Name} dealing {damageDealtToEnemy} damage.");
 
         if (enemy.Health <= 0)
         {
-            LastMessage += $"You killed the {enemy.Name}!";
+            EventLogger.Instance.Log($"{_player.PlayerName} defeated the {enemy.Name}.");
             cellWithEnemy.Enemy = null;
             return;
         }
@@ -114,7 +115,7 @@ public class GameEngine
         int damageDealtToPlayer = Math.Max(0, enemy.Attack - totalPlayerDefense);
         _player.Health -= damageDealtToPlayer;
 
-        LastMessage += $" Enemy retaliates! You take {damageDealtToPlayer} dmg (Your defense: {totalPlayerDefense}).";
+        EventLogger.Instance.Log($"Enemy {enemy.Name} attacked {_player.PlayerName} dealing {damageDealtToPlayer} damage.");
 
         if (_player.Health <= 0)
         {
@@ -135,7 +136,6 @@ public class GameEngine
             }
 
             cki = Console.ReadKey(true);
-            LastMessage = "";
 
             if (_commands.TryGetValue(cki.Key, out ICommand? command))
             {
@@ -143,7 +143,7 @@ public class GameEngine
             }
             else
             {
-                LastMessage = "Unknown command! Press the right key.";
+                EventLogger.Instance.Log($"{_player.PlayerName} pressed unknown button: {cki.Key}");
             }
         } while (true);
         
@@ -157,16 +157,18 @@ public class GameEngine
         Item? item = _player.LeftHand;
         if (item == null) return;
 
+        EventLogger.Instance.Log($"{_player.PlayerName} unequipped item: {item.Name}");
+
         if (_player.LeftHand == _player.RightHand)
         {
             _player.LeftHand = null;
             _player.RightHand = null;
-            item.OnPickedUp(_player);
+            _player.Backpack.AddItem(item);
         }
         else
         {
             _player.LeftHand = null;
-            item.OnPickedUp(_player);
+            _player.Backpack.AddItem(item);
         }
     }
 
@@ -175,16 +177,18 @@ public class GameEngine
         Item? item = _player.RightHand;
         if (item == null) return;
 
+        EventLogger.Instance.Log($"{_player.PlayerName} unequipped item: {item.Name}");
+
         if (_player.LeftHand == _player.RightHand)
         {
             _player.LeftHand = null;
             _player.RightHand = null;
-            item.OnPickedUp(_player);
+            _player.Backpack.AddItem(item);
         }
         else
         {
             _player.RightHand = null;
-            item.OnPickedUp(_player);
+            _player.Backpack.AddItem(item);
         }
     }
 
@@ -196,6 +200,7 @@ public class GameEngine
         Item item = currentCell.ItemsOnGround.Pop();
 
         item.OnPickedUp(_player);
+        EventLogger.Instance.Log($"{_player.PlayerName} picked up item: {item.Name}");
 
         if (item.GoesToBackpack)
         {
@@ -206,9 +211,9 @@ public class GameEngine
     private void TryToEquipItem()
     {
         Item? item = _player.Backpack.SelectedItem;
-        if (item == null) return;
+        if (item == null || !item.IsEquippable) return;
 
-        if (!item.IsEquippable) return;
+        EventLogger.Instance.Log($"{_player.PlayerName} equipped item: {item.Name}");
 
         if (item.IsTwoHanded)
         {
@@ -248,17 +253,22 @@ public class GameEngine
         if (_player.CurrentAttackStrategy is NormalAttack)
         {
             _player.ChangeAttackStrategy(new StealthAttack());
-            LastMessage = "Changed attack to Stealth";
+            EventLogger.Instance.Log($"{_player.PlayerName} changed attack to Stealth.");
         }
         else if (_player.CurrentAttackStrategy is StealthAttack)
         {
             _player.ChangeAttackStrategy(new MagicAttack());
-            LastMessage = "Changed attack to Magic";
+            EventLogger.Instance.Log($"{_player.PlayerName} changed attack to Magic.");
         }
         else
         {
             _player.ChangeAttackStrategy(new NormalAttack());
-            LastMessage = "Changed attack to Normal";
+            EventLogger.Instance.Log($"{_player.PlayerName} changed attack to Normal.");
         }
+    }
+
+    private void ShowFullLogs()
+    {
+        _render.RenderFullLogsScreen();
     }
 }
