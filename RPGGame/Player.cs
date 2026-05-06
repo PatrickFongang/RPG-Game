@@ -1,10 +1,11 @@
 ﻿using RPGGame.Combat;
 using RPGGame.Config;
 using RPGGame.Items;
+using RPGGame.Observers;
 
 namespace RPGGame;
 
-public class Player(int startX, int startY)
+public class Player(int startX, int startY) : ISoundSubject
 {
     public Inventory Backpack { get; } = new Inventory();
     public Dictionary<string, int> Wallet { get; } = new Dictionary<string, int>();
@@ -19,6 +20,29 @@ public class Player(int startX, int startY)
     public int BaseAgility { get; set; } = 7;
     public int BaseWisdom { get; set; } = 5;
     public int BaseLuck { get; set; } = 2;
+
+    private readonly List<ISoundObserver> _soundObservers = new List<ISoundObserver>();
+    
+    public void AttachSoundObserver(ISoundObserver observer)
+    {
+        if (!_soundObservers.Contains(observer))
+        {
+            _soundObservers.Add(observer);
+        }
+    }
+
+    public void DetachSoundObserver(ISoundObserver observer)
+    {
+        _soundObservers.Remove(observer);
+    }
+
+    public void NotifySound(int range, Dungeon dungeon)
+    {
+        foreach (var observer in _soundObservers.ToList())
+        {
+            observer.OnSoundHeard(X, Y, range, dungeon);
+        }
+    }
 
     public int Luck
     {

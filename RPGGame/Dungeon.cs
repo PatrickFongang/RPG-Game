@@ -11,6 +11,8 @@ public class Dungeon
     public bool HasPickups { get; set; }
     public bool HasInventoryItems { get; set; }
 
+    public List<Enemy> ActiveEnemies { get; } = new List<Enemy>();
+
     public Cell this[int rows, int cols]
     {
         get => _board[rows, cols];

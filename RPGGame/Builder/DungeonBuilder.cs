@@ -130,19 +130,29 @@ public class DungeonBuilder : IDungeonBuilder
         _dungeon[field.row, field.col].ItemsOnGround.Push(_theme.CreateArtifact());
     }
 
-    public void AddEnemies(int numberOfEnemies)
+    public void AddEnemies(int numberOfGroups)
     {
-        if (numberOfEnemies < 1 || _theme == null) return;
+        if (numberOfGroups < 1 || _theme == null) return;
 
-        for (int i = 0; i < numberOfEnemies; i++)
+        for (int i = 0; i < numberOfGroups; i++)
         {
-            int row, column;
-            do
-            {
-                (row, column) = GetRandomField();
-            } while (_dungeon[row, column].Enemy != null);
+            int groupSize = random.Next(3, 6); 
+            var enemies = _theme.CreateEnemyGroup(random, groupSize);
 
-            _dungeon[row, column].Enemy = _theme.CreateEnemy(random);
+            foreach (var enemy in enemies)
+            {
+                int row, column;
+                do
+                {
+                    (row, column) = GetRandomField();
+                } while (_dungeon[row, column].Enemy != null);
+
+                enemy.X = column;
+                enemy.Y = row;
+                
+                _dungeon[row, column].Enemy = enemy;
+                _dungeon.ActiveEnemies.Add(enemy);
+            }
         }
     }
 

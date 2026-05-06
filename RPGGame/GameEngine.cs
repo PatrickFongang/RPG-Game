@@ -32,6 +32,11 @@ public class GameEngine
         _player = new Player(dungeon.Columns / 2, _dungeon.Rows / 2);
         _render = new Render(_dungeon, _player, this);
 
+        foreach (var enemy in _dungeon.ActiveEnemies)
+        {
+            _player.AttachSoundObserver(enemy);
+        }
+
         InitializeCommands();
     }
 
@@ -94,6 +99,9 @@ public class GameEngine
         {
             EventLogger.Instance.Log($"{_player.PlayerName} defeated the {enemy.Name}.");
             cellWithEnemy.Enemy = null;
+            _dungeon.ActiveEnemies.Remove(enemy);
+            _player.DetachSoundObserver(enemy); 
+            enemy.Die(); 
             return;
         }
 
@@ -140,6 +148,28 @@ public class GameEngine
             if (_commands.TryGetValue(cki.Key, out ICommand? command))
             {
                 command.Execute();
+                
+                foreach (var enemy in _dungeon.ActiveEnemies.ToList())
+                {
+                    if (enemy.Health <= 0) continue;
+
+                    int oldX = enemy.X;
+                    int oldY = enemy.Y;
+
+                    enemy.PerformMove(_dungeon);
+
+                    if (enemy.X == _player.X && enemy.Y == _player.Y)
+                    {
+                        _dungeon[_player.Y, _player.X].Enemy = null;
+                        
+                        enemy.X = oldX;
+                        enemy.Y = oldY;
+                        
+                        _dungeon[oldY, oldX].Enemy = enemy;
+
+                        ResolveCombat(enemy, _dungeon[oldY, oldX]);
+                    }
+                }
             }
             else
             {
@@ -201,6 +231,11 @@ public class GameEngine
 
         item.OnPickedUp(_player);
         EventLogger.Instance.Log($"{_player.PlayerName} picked up item: {item.Name}");
+
+        if (item.NoiseRange > 0)
+        {
+            _player.NotifySound(item.NoiseRange, _dungeon);
+        }
 
         if (item.GoesToBackpack)
         {

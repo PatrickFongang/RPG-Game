@@ -1,5 +1,6 @@
 ﻿using RPGGame.Builder;
 using RPGGame.Items;
+using RPGGame.Observers;
 
 namespace RPGGame.Themes;
 
@@ -36,5 +37,25 @@ public class LibraryTheme : IDungeonTheme
 
     public Item CreateArtifact() => new MagicWeapon("Black Wand", 'W', 1, 20, false, "A powerful wand radiating dark energy.");
 
-    public Enemy CreateEnemy(Random random) => new Enemy("Mage", 'M', health: 40, attack: 15, armor: 2);
+    public IEnumerable<Enemy> CreateEnemyGroup(Random random, int groupSize)
+    {
+        var group = new List<Enemy>();
+        var speciesGroup = new SpeciesGroup();
+        
+        bool isGoblinGroup = random.Next(2) == 0;
+
+        for (int i = 0; i < groupSize; i++)
+        {
+            if (isGoblinGroup)
+            {
+                group.Add(new Goblin(speciesGroup));
+            }
+            else
+            {
+                group.Add(new Skeleton(speciesGroup));
+            }
+        }
+
+        return group;
+    }
 }

@@ -139,7 +139,7 @@ public class Render(Dungeon dungeon, Player player, GameEngine engine)
             {
                 if (player.X == j && player.Y == i)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.Write('¶');
                 }
                 else if (dungeon[i, j].ItemsOnGround.Count > 0)

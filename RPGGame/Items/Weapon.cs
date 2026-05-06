@@ -8,16 +8,19 @@ public class Weapon(string name, char symbol, int rarity, int baseDamage, bool i
     public int BaseDamage { get; protected set; } = baseDamage;
     public override bool IsTwoHanded { get; } = isTwoHanded; 
 }
+
 public class HeavyWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description)
     : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
 { 
+    public override int NoiseRange => 8;
     public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
     public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
 }
 
-public class  LightWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description) 
+public class LightWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description) 
     : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
 { 
+    public override int NoiseRange => 2;
     public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
     public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
 }
@@ -25,6 +28,7 @@ public class  LightWeapon(string name, char symbol, int rarity, int baseDamage, 
 public class MagicWeapon(string name, char symbol, int rarity, int baseDamage, bool isTwoHanded, string description) 
     : Weapon(name, symbol, rarity, baseDamage, isTwoHanded, description)
 {
+    public override int NoiseRange => 5;
     public override int CalculateDamageWith(IAttackVisitor attack, Player player) => attack.CalculateDamage(this, player);
     public override int CalculateDefenseWith(IAttackVisitor attack, Player player) => attack.CalculateDefense(this, player);
 }

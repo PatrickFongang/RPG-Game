@@ -1,5 +1,6 @@
 ﻿using RPGGame.Builder;
 using RPGGame.Items;
+using RPGGame.Observers;
 
 namespace RPGGame.Themes;
 
@@ -35,7 +36,25 @@ public class WealthTheme : IDungeonTheme
 
     public Item CreateArtifact() => new HeavyWeapon("Lucky Coin Pouch", 'P', 1, 20, true, "A heavy sack of coins used as a flail.");
 
-    public Enemy CreateEnemy(Random random) => random.Next(2) == 0 ? 
-        new Enemy("Aggressive Briefcase", 'A', health: 35, attack: 10, armor: 4) : 
-        new Enemy("Animated Safe", 'S', health: 80, attack: 20, armor: 10);
+    public IEnumerable<Enemy> CreateEnemyGroup(Random random, int groupSize)
+    {
+        var group = new List<Enemy>();
+        var speciesGroup = new SpeciesGroup();
+        
+        bool isBriefcaseGroup = random.Next(2) == 0;
+
+        for (int i = 0; i < groupSize; i++)
+        {
+            if (isBriefcaseGroup)
+            {
+                group.Add(new AggressiveBriefcase(speciesGroup));
+            }
+            else
+            {
+                group.Add(new AnimatedSafe(speciesGroup));
+            }
+        }
+
+        return group;
+    }
 }

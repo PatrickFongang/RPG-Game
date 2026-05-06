@@ -24,6 +24,7 @@ public abstract class ItemDecorator : Item
     public override bool IsTwoHanded => _wrappee.IsTwoHanded;
 
     public override void OnPickedUp(Player player) => _wrappee.OnPickedUp(player);
+    public override int NoiseRange => _wrappee.NoiseRange;
 }
 
 public class LuckModifierDecorator : ItemDecorator

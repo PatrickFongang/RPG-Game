@@ -12,5 +12,5 @@ public interface IDungeonTheme
     Item CreateWeaponItem(Random random);
     Item CreateCurrencyItem(Random random);
     Item CreateArtifact();
-    Enemy CreateEnemy(Random random);
+    IEnumerable<Enemy> CreateEnemyGroup(Random random, int groupSize);
 }

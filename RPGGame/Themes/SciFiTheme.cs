@@ -1,5 +1,6 @@
 ﻿using RPGGame.Builder;
 using RPGGame.Items;
+using RPGGame.Observers;
 
 namespace RPGGame.Themes;
 
@@ -33,5 +34,25 @@ public class SciFiTheme : IDungeonTheme
 
     public Item CreateArtifact() => new HeavyWeapon("Blaster", 'B', 1, 25, true, "A high-tech plasma rifle.");
 
-    public Enemy CreateEnemy(Random random) => new Enemy("Rogue Cleaning Bot", 'R', health: 50, attack: 12, armor: 6);
+    public IEnumerable<Enemy> CreateEnemyGroup(Random random, int groupSize)
+    {
+        var group = new List<Enemy>();
+        var speciesGroup = new SpeciesGroup();
+        
+        bool isBotGroup = random.Next(2) == 0;
+
+        for (int i = 0; i < groupSize; i++)
+        {
+            if (isBotGroup)
+            {
+                group.Add(new CleaningBot(speciesGroup));
+            }
+            else
+            {
+                group.Add(new SecurityDrone(speciesGroup));
+            }
+        }
+
+        return group;
+    }
 }
