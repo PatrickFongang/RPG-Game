@@ -1,51 +1,142 @@
-﻿using System.Globalization;
-using RPGGame;
+﻿namespace RPGGame;
+
+using System;
+using System.Threading;
 using RPGGame.Builder;
 using RPGGame.Director;
-using RPGGame.Logging;
 using RPGGame.Config;
+using RPGGame.Logging;
+using RPGGame.MVC;
+using RPGGame.MVC.Controllers;
+using RPGGame.MVC.Views;
+using RPGGame.Network;
 using RPGGame.Themes;
 
-Console.OutputEncoding = System.Text.Encoding.UTF8;
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        ConfigManager.Instance.LoadConfig("config.json");
 
-ConfigManager.Instance.LoadConfig("config.json");
+        bool isServer = false;
+        string ip = "127.0.0.1";
+        int port = 5555;
 
-CompositeLogger compositeLogger = new CompositeLogger();
-compositeLogger.AddLogger(new MemoryLogger());
+        if (args.Length > 0)
+        {
+            if (args[0] == "--server")
+            {
+                isServer = true;
+                if (args.Length > 1 && int.TryParse(args[1], out int p))
+                {
+                    port = p;
+                }
+            }
+            else if (args[0] == "--client")
+            {
+                if (args.Length > 1)
+                {
+                    var parts = args[1].Split(':');
+                    ip = parts[0];
+                    if (parts.Length > 1 && int.TryParse(parts[1], out int p))
+                    {
+                        port = p;
+                    }
+                }
+            }
+        }
+        else
+        {
+            Console.Clear();
+            Console.WriteLine("Start as a (S)erver or (C)lient?");
+            var key = Console.ReadKey(true).Key;
+            isServer = (key == ConsoleKey.S);
+            Console.Clear();
+        }
 
-FileLogger fileLogger = new FileLogger(
-    ConfigManager.Instance.Config.LogDirectory, 
-    ConfigManager.Instance.Config.PlayerName
-);
-compositeLogger.AddLogger(fileLogger);
+        if (isServer)
+        {
+            RunServer(port);
+        }
+        else
+        {
+            RunClient(ip, port);
+        }
+    }
 
-EventLogger.Instance.SetStrategy(compositeLogger);
+    static void RunServer(int port)
+    {
+        CompositeLogger compositeLogger = new CompositeLogger();
+        compositeLogger.AddLogger(new MemoryLogger());
+        
+        FileLogger fileLogger = new FileLogger(
+            ConfigManager.Instance.Config.LogDirectory,
+            "Server" 
+        );
+        compositeLogger.AddLogger(fileLogger);
+        
+        compositeLogger.AddLogger(new ConsoleLogger());
 
-IDungeonTheme[] themes = { new LibraryTheme(), new SciFiTheme(), new WealthTheme() };
-IDungeonTheme selectedTheme = themes[new Random().Next(themes.Length)];
+        EventLogger.Instance.SetStrategy(compositeLogger);
 
-Console.Clear();
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("=== WELCOME TO THE DUNGEON ===");
-Console.ResetColor();
-Console.WriteLine();
+        IDungeonTheme[] themes = { new LibraryTheme(), new SciFiTheme(), new WealthTheme() };
+        IDungeonTheme selectedTheme = themes[new Random().Next(themes.Length)];
 
-Console.WriteLine(selectedTheme.WelcomeMessage);
+        EventLogger.Instance.Log($"Game server started. Theme: {selectedTheme.GetType().Name}");
 
-Console.WriteLine();
-Console.ForegroundColor = ConsoleColor.DarkGray;
-Console.WriteLine("Press any key to begin your adventure...");
-Console.ResetColor();
-Console.ReadKey(true);
-Console.Clear();
+        DungeonBuilder builder = new DungeonBuilder(20, 40);
+        DungeonDirector director = new DungeonDirector(builder);
+        
+        director.ConstructThemedDungeon(selectedTheme);
+        Dungeon generatedDungeon = builder.GetDungeon();
 
-EventLogger.Instance.Log($"Game started for player: {ConfigManager.Instance.Config.PlayerName}");
+        GameModel gameModel = new GameModel(generatedDungeon)
+        {
+            WelcomeMessage = selectedTheme.WelcomeMessage
+        };
 
-DungeonBuilder builder = new DungeonBuilder(20, 40);
-DungeonDirector director = new DungeonDirector(builder);
+        TcpGameServer server = new TcpGameServer(gameModel, port);
+        
+        Console.WriteLine($"=== Server ===");
+        Console.WriteLine($"Listening on port: {port}");
+        Console.WriteLine($"Loaded Theme: {selectedTheme.GetType().Name}");
+        
+        server.Start();
+        
+        while (Console.ReadKey(true).Key != ConsoleKey.Escape) { }
+    }
 
-director.ConstructThemedDungeon(selectedTheme);
-Dungeon generatedDungeon = builder.GetDungeon();
+    static void RunClient(string ip, int port)
+    {
+        Console.WriteLine($"Connecting to the server {ip}:{port}...");
+        
+        TcpGameClient client = new TcpGameClient(ip, port);
+        client.Connect();
 
-GameEngine newGameEngine = new GameEngine(generatedDungeon);
-newGameEngine.StartGame();
+        while (client.LocalPlayerId == -1)
+        {
+            Thread.Sleep(100);
+        }
+
+        ConsoleView view = new ConsoleView();
+        view.RenderWelcomeScreen(client.WelcomeMessage);
+
+        client.StartRendering();
+
+        InputController controller = new InputController(client.LocalPlayerId, client.SendCommand, client.ShowLogsLocally);
+
+        while (true)
+        {
+            if (client.IsLocalGameOver)
+            {
+                client.DisconnectAndShowGameOver(); 
+                Console.ReadKey(true);              
+                break;                              
+            }
+
+            controller.ProcessInput();
+            Thread.Sleep(50); 
+        }
+    }
+}

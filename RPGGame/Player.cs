@@ -9,7 +9,7 @@ public class Player(int startX, int startY) : ISoundSubject
 {
     public Inventory Backpack { get; } = new Inventory();
     public Dictionary<string, int> Wallet { get; } = new Dictionary<string, int>();
-    public string PlayerName { get; private set; } = ConfigManager.Instance.Config.PlayerName;
+    public string PlayerName { get; set; } = ConfigManager.Instance.Config.PlayerName;
 
     public Item? LeftHand { get; set; }
     public Item? RightHand { get; set; }

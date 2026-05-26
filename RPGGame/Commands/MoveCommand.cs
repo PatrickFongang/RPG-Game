@@ -1,45 +1,53 @@
-﻿using RPGGame.Logging;
+﻿namespace RPGGame.Commands;
 
-namespace RPGGame.Commands;
+using System.Linq;
+using RPGGame.MVC;
+using RPGGame.Logging;
 
 public class MoveCommand : ICommand
 {
-    private readonly Player _player;
-    private readonly Dungeon _dungeon;
-    private readonly int _dx, _dy;
-    private readonly GameEngine _gameEngine;
-    
-    public MoveCommand(Player player, Dungeon dungeon, GameEngine gameEngine, int dx, int dy)
+    private readonly int _dx;
+    private readonly int _dy;
+
+    public MoveCommand(int dx, int dy)
     {
-        _player = player;
-        _dungeon = dungeon;
-        _gameEngine = gameEngine;
         _dx = dx;
         _dy = dy;
     }
 
-    public void Execute()
+    public void Execute(GameModel model, int playerId)
     {
-        int targetX = _player.X + _dx;
-        int targetY = _player.Y + _dy;
+        if (!model.Players.TryGetValue(playerId, out Player player)) return;
 
-        if (targetX < 0 || targetX >= _dungeon.Columns || targetY < 0 || targetY >= _dungeon.Rows) return;
-    
-        Cell targetCell = _dungeon[targetY, targetX];
+        int targetX = player.X + _dx;
+        int targetY = player.Y + _dy;
+
+        if (targetX < 0 || targetX >= model.Dungeon.Columns || targetY < 0 || targetY >= model.Dungeon.Rows) return;
+
+        Cell targetCell = model.Dungeon[targetY, targetX];
 
         if (targetCell.Enemy != null)
         {
-            _gameEngine.ResolveCombat(targetCell.Enemy, targetCell); 
+            model.ResolveCombat(player, targetCell.Enemy, targetCell);
+            return;
+        }
+        
+        var otherPlayer = model.Players.Values.FirstOrDefault(p => p.X == targetX && p.Y == targetY);
+        if (otherPlayer != null)
+        {
             return; 
         }
 
         if (!targetCell.IsPassable)
         {
-            EventLogger.Instance.Log($"{_player.PlayerName} tried to walk into a wall.");
+            EventLogger.Instance.Log($"{player.PlayerName} tried to walk into a wall.");
+            model.NotifyViews();
             return;
         }
 
-        _player.X = targetX;
-        _player.Y = targetY;
+        player.X = targetX;
+        player.Y = targetY;
+        
+        model.NotifyViews();
     }
 }
